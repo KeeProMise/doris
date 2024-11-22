@@ -31,6 +31,7 @@ import org.apache.doris.job.base.TimerDefinition;
 import org.apache.doris.job.common.JobStatus;
 import org.apache.doris.job.common.JobType;
 import org.apache.doris.job.exception.JobException;
+import org.apache.doris.job.extensions.mtmv.LoadMTMVTaskContext;
 import org.apache.doris.job.extensions.mtmv.MTMVJob;
 import org.apache.doris.job.extensions.mtmv.MTMVTask;
 import org.apache.doris.job.extensions.mtmv.MTMVTask.MTMVTaskTriggerMode;
@@ -38,6 +39,7 @@ import org.apache.doris.job.extensions.mtmv.MTMVTaskContext;
 import org.apache.doris.mtmv.MTMVRefreshEnum.BuildMode;
 import org.apache.doris.mtmv.MTMVRefreshEnum.RefreshTrigger;
 import org.apache.doris.nereids.trees.plans.commands.info.CancelMTMVTaskInfo;
+import org.apache.doris.nereids.trees.plans.commands.info.LoadMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.PauseMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.RefreshMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.ResumeMTMVInfo;
@@ -175,6 +177,14 @@ public class MTMVJobManager implements MTMVHookService {
         MTMVTaskContext mtmvTaskContext = new MTMVTaskContext(MTMVTaskTriggerMode.MANUAL, info.getPartitions(),
                 info.isComplete());
         Env.getCurrentEnv().getJobManager().triggerJob(job.getJobId(), mtmvTaskContext);
+    }
+
+    @Override
+    public void loadMTMV(LoadMTMVInfo info) throws DdlException, MetaNotFoundException, JobException {
+        MTMVJob job = getJobByTableNameInfo(info.getMvName());
+        LoadMTMVTaskContext loadMTMVTaskContext = new LoadMTMVTaskContext(MTMVTaskTriggerMode.MANUAL, info.getPartitions(),
+            info.isComplete(), info.getTable(), info.isUseTable());
+        Env.getCurrentEnv().getJobManager().triggerJob(job.getJobId(), loadMTMVTaskContext);
     }
 
     @Override

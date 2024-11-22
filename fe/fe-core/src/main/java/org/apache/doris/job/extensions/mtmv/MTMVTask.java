@@ -18,9 +18,11 @@
 package org.apache.doris.job.extensions.mtmv;
 
 import org.apache.doris.catalog.Column;
+import org.apache.doris.catalog.Database;
 import org.apache.doris.catalog.Env;
 import org.apache.doris.catalog.MTMV;
 import org.apache.doris.catalog.ScalarType;
+import org.apache.doris.catalog.Table;
 import org.apache.doris.catalog.TableIf;
 import org.apache.doris.common.AnalysisException;
 import org.apache.doris.common.DdlException;
@@ -228,10 +230,27 @@ public class MTMVTask extends AbstractTask {
         ctx.setStatementContext(statementContext);
         TUniqueId queryId = generateQueryId();
         lastQueryId = DebugUtil.printId(queryId);
-        // if SELF_MANAGE mv, only have default partition,  will not have partitionItem, so we give empty set
-        UpdateMvByPartitionCommand command = UpdateMvByPartitionCommand
+        Table usedTable = null;
+        if (taskContext instanceof LoadMTMVTaskContext) {
+            LoadMTMVTaskContext loadTaskContext = (LoadMTMVTaskContext) taskContext;
+            if (loadTaskContext.isUseTable()) {
+                TableNameInfo table = loadTaskContext.getTable();
+                Database db = Env.getCurrentInternalCatalog().getDbOrDdlException(table.getDb());
+                usedTable = db.getTableOrMetaException(table.getTbl(), TableIf.TableType.OLAP);
+            }
+        }
+        UpdateMvByPartitionCommand command = null;
+        if (usedTable == null) {
+            // if SELF_MANAGE mv, only have default partition,  will not have partitionItem, so we give empty set
+            command = UpdateMvByPartitionCommand
                 .from(mtmv, mtmv.getMvPartitionInfo().getPartitionType() != MTMVPartitionType.SELF_MANAGE
-                        ? refreshPartitionNames : Sets.newHashSet(), tableWithPartKey);
+                    ? refreshPartitionNames : Sets.newHashSet(), tableWithPartKey);
+        } else {
+            // load
+            command = UpdateMvByPartitionCommand
+                .from(mtmv, usedTable, mtmv.getMvPartitionInfo().getPartitionType() != MTMVPartitionType.SELF_MANAGE
+                    ? refreshPartitionNames : Sets.newHashSet(), tableWithPartKey);
+        }
         executor = new StmtExecutor(ctx, new LogicalPlanAdapter(command, ctx.getStatementContext()));
         ctx.setExecutor(executor);
         ctx.setQueryId(queryId);

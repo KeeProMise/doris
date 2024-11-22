@@ -37,6 +37,7 @@ import org.apache.doris.nereids.trees.plans.commands.DropProcedureCommand;
 import org.apache.doris.nereids.trees.plans.commands.ExplainCommand;
 import org.apache.doris.nereids.trees.plans.commands.ExportCommand;
 import org.apache.doris.nereids.trees.plans.commands.LoadCommand;
+import org.apache.doris.nereids.trees.plans.commands.LoadMTMVCommand;
 import org.apache.doris.nereids.trees.plans.commands.PauseMTMVCommand;
 import org.apache.doris.nereids.trees.plans.commands.RefreshMTMVCommand;
 import org.apache.doris.nereids.trees.plans.commands.ResumeMTMVCommand;
@@ -124,6 +125,10 @@ public interface CommandVisitor<R, C> {
 
     default R visitRefreshMTMVCommand(RefreshMTMVCommand refreshMTMVCommand, C context) {
         return visitCommand(refreshMTMVCommand, context);
+    }
+
+    default R visitLoadMTMVCommand(LoadMTMVCommand loadMTMVCommand, C context) {
+        return visitCommand(loadMTMVCommand, context);
     }
 
     default R visitDropMTMVCommand(DropMTMVCommand dropMTMVCommand, C context) {

@@ -24,6 +24,7 @@ import org.apache.doris.catalog.OlapTable;
 import org.apache.doris.catalog.Partition;
 import org.apache.doris.catalog.PartitionItem;
 import org.apache.doris.catalog.PartitionKey;
+import org.apache.doris.catalog.Table;
 import org.apache.doris.catalog.TableIf;
 import org.apache.doris.catalog.Type;
 import org.apache.doris.common.AnalysisException;
@@ -67,6 +68,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -106,6 +108,35 @@ public class UpdateMvByPartitionCommand extends InsertOverwriteTableCommand {
                 ImmutableList.of(), ImmutableList.of(), parts, plan);
         return new UpdateMvByPartitionCommand(sink);
     }
+
+    /**
+     * Construct command
+     *
+     * @param mv materialize view
+     * @param partitionNames update partitions in mv and tables
+     * @param tableWithPartKey the partitions key for different table
+     * @return command
+     */
+    public static UpdateMvByPartitionCommand from(MTMV mv, Table table, Set<String> partitionNames,
+                                                  Map<TableIf, String> tableWithPartKey) throws UserException {
+        String sql = "select * from " + table.getName();
+        NereidsParser parser = new NereidsParser();
+        String next = tableWithPartKey.values().iterator().next();
+        tableWithPartKey.clear();
+        tableWithPartKey.put(table, next);
+        Map<TableIf, Set<Expression>> predicates =
+            constructTableWithPredicates(mv, partitionNames, tableWithPartKey);
+        List<String> parts = constructPartsForMv(partitionNames);
+        Plan plan = parser.parseSingle(sql);
+        plan = plan.accept(new PredicateAdder(), new PredicateAddContext(predicates));
+        if (plan instanceof Sink) {
+            plan = plan.child(0);
+        }
+        LogicalSink<? extends Plan> sink = UnboundTableSinkCreator.createUnboundTableSink(mv.getFullQualifiers(),
+            ImmutableList.of(), ImmutableList.of(), parts, plan);
+        return new UpdateMvByPartitionCommand(sink);
+    }
+
 
     private static List<String> constructPartsForMv(Set<String> partitionNames) {
         return Lists.newArrayList(partitionNames);
