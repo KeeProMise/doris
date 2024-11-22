@@ -106,6 +106,8 @@ statementBase
         propertyClause?
         AS query                                                        #createMTMV
     | REFRESH MATERIALIZED VIEW mvName=multipartIdentifier (partitionSpec | COMPLETE | AUTO)      #refreshMTMV
+    | LOAD MATERIALIZED VIEW mvName=multipartIdentifier FROM TABLE tableName=multipartIdentifier
+         (partitionSpec | COMPLETE | AUTO)                                 #loadMTMV
     | ALTER MATERIALIZED VIEW mvName=multipartIdentifier ((RENAME newName=identifier)
        | (REFRESH (refreshMethod | refreshTrigger | refreshMethod refreshTrigger))
        | REPLACE WITH MATERIALIZED VIEW newName=identifier propertyClause?

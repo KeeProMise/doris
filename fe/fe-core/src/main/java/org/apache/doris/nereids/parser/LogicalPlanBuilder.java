@@ -378,6 +378,7 @@ import org.apache.doris.nereids.trees.plans.commands.ExplainCommand;
 import org.apache.doris.nereids.trees.plans.commands.ExplainCommand.ExplainLevel;
 import org.apache.doris.nereids.trees.plans.commands.ExportCommand;
 import org.apache.doris.nereids.trees.plans.commands.LoadCommand;
+import org.apache.doris.nereids.trees.plans.commands.LoadMTMVCommand;
 import org.apache.doris.nereids.trees.plans.commands.PauseMTMVCommand;
 import org.apache.doris.nereids.trees.plans.commands.RefreshMTMVCommand;
 import org.apache.doris.nereids.trees.plans.commands.ResumeMTMVCommand;
@@ -410,6 +411,7 @@ import org.apache.doris.nereids.trees.plans.commands.info.FuncNameInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.InPartition;
 import org.apache.doris.nereids.trees.plans.commands.info.IndexDefinition;
 import org.apache.doris.nereids.trees.plans.commands.info.LessThanPartition;
+import org.apache.doris.nereids.trees.plans.commands.info.LoadMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.MTMVPartitionDefinition;
 import org.apache.doris.nereids.trees.plans.commands.info.PartitionDefinition;
 import org.apache.doris.nereids.trees.plans.commands.info.PartitionDefinition.MaxValue;
@@ -785,6 +787,31 @@ public class LogicalPlanBuilder extends DorisParserBaseVisitor<Object> {
         }
         return new RefreshMTMVCommand(new RefreshMTMVInfo(new TableNameInfo(nameParts),
                 partitions, ctx.COMPLETE() != null));
+    }
+
+    @Override
+    public LoadMTMVCommand visitLoadMTMV(DorisParser.LoadMTMVContext ctx) {
+        List<String> mvNameParts = visitMultipartIdentifier(ctx.mvName);
+        TableNameInfo mvTableNameInfo = new TableNameInfo(mvNameParts);
+        boolean useTable = ctx.LOAD() != null;
+        TableNameInfo tableNameInfo = null;
+        if (useTable) {
+            List<String> tableNameParts = visitMultipartIdentifier(ctx.tableName);
+            tableNameInfo = new TableNameInfo(tableNameParts);
+        }
+        List<String> partitions = ImmutableList.of();
+        if (ctx.partitionSpec() != null) {
+            if (ctx.partitionSpec().TEMPORARY() != null) {
+                throw new AnalysisException("Not allowed to specify TEMPORARY ");
+            }
+            if (ctx.partitionSpec().partition != null) {
+                partitions = ImmutableList.of(ctx.partitionSpec().partition.getText());
+            } else {
+                partitions = visitIdentifierList(ctx.partitionSpec().partitions);
+            }
+        }
+        return new LoadMTMVCommand(new LoadMTMVInfo(mvTableNameInfo,
+            partitions, ctx.COMPLETE() != null, tableNameInfo, useTable));
     }
 
     @Override

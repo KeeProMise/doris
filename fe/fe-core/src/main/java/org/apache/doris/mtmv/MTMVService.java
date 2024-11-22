@@ -32,6 +32,7 @@ import org.apache.doris.job.exception.JobException;
 import org.apache.doris.job.extensions.mtmv.MTMVTask;
 import org.apache.doris.mtmv.MTMVRefreshEnum.RefreshTrigger;
 import org.apache.doris.nereids.trees.plans.commands.info.CancelMTMVTaskInfo;
+import org.apache.doris.nereids.trees.plans.commands.info.LoadMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.PauseMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.RefreshMTMVInfo;
 import org.apache.doris.nereids.trees.plans.commands.info.ResumeMTMVInfo;
@@ -119,6 +120,14 @@ public class MTMVService implements EventListener {
         LOG.info("refreshMTMV, RefreshMTMVInfo: {}", info);
         for (MTMVHookService mtmvHookService : hooks.values()) {
             mtmvHookService.refreshMTMV(info);
+        }
+    }
+
+    public void loadMTMV(LoadMTMVInfo info) throws DdlException, MetaNotFoundException, JobException {
+        Objects.requireNonNull(info);
+        LOG.info("loadMTMV, LoadMTMVInfo: {}", info);
+        for (MTMVHookService mtmvHookService : hooks.values()) {
+            mtmvHookService.loadMTMV(info);
         }
     }
 
